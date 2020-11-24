@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
 import store from './store';
+import api from './api';
 
 const generateItemElement = function (item) {
   let itemTitle = `<span class="shopping-item shopping-item__checked">${item.name}</span>`;
@@ -49,9 +50,17 @@ const handleNewItemSubmit = function () {
   $('#js-shopping-list-form').submit(function (event) {
     event.preventDefault();
     const newItemName = $('.js-shopping-list-entry').val();
-    $('.js-shopping-list-entry').val('');
-    store.addItem(newItemName);
-    render();
+
+    api.createItem(newItemName)
+      .then(res => res.json())
+      .then((newItem) => {
+        store.addItem(newItem);
+        render();
+      });
+
+    // $('.js-shopping-list-entry').val('');
+    // store.addItem(newItemName);
+    // render();
   });
 };
 
@@ -67,9 +76,12 @@ const handleDeleteItemClicked = function () {
     // get the index of the item in store.items
     const id = getItemIdFromElement(event.currentTarget);
     // delete the item
-    store.findAndDelete(id);
-    // render the updated shopping list
-    render();
+    api.deleteItem(id)
+      .then(res => res.json())
+      .then(() => {
+        store.findAndDelete(id);
+        render();
+      });
   });
 };
 
@@ -78,16 +90,27 @@ const handleEditShoppingItemSubmit = function () {
     event.preventDefault();
     const id = getItemIdFromElement(event.currentTarget);
     const itemName = $(event.currentTarget).find('.shopping-item').val();
-    store.findAndUpdateName(id, itemName);
-    render();
+
+    const itemNameObj = { name: itemName }
+    api.updateItem(id, itemNameObj)
+      .then(res => res.json())
+      .then((newItem) => {
+        store.findAndUpdate(id, newItem);
+        render();
+      });
   });
 };
 
 const handleItemCheckClicked = function () {
   $('.js-shopping-list').on('click', '.js-item-toggle', event => {
     const id = getItemIdFromElement(event.currentTarget);
-    store.findAndToggleChecked(id);
-    render();
+    let itemObj = store.findById(id);
+
+    api.updateItem(id, { checked: !itemObj.checked })
+      .then(() => {
+        store.findAndUpdate(id, { checked: !itemObj.checked });
+        render();
+      })
   });
 };
 
